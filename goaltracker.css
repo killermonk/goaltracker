@@ -1,0 +1,37 @@
+label {
+	width: 125px;
+	font-weight: bold;
+	display: inline-block;
+	padding-bottom: 5px;
+}
+
+.goal .outer_progress {
+	width: 250px;
+	height: 15px;
+	float: left;
+	background-color: #ccc;
+	position: relative;
+}
+.goal .progress_text {
+	padding-left: 10px;
+}
+.goal .pace_progress {
+	height: 15px;
+	background-color: #c00;
+	position: relative;
+	left: 0px;
+	top: 0px;
+}
+.goal .inner_progress {
+	height: 15px;
+	background-color: #0c0;
+	position: relative;
+	left: 0px;
+	top: -15px;
+}
+.goal .progress_text {
+	float: left;
+}
+.goal .task_progress {
+	clear: both;
+}

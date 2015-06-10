@@ -27,7 +27,7 @@ window.GoalTracker = Class.create({
 		});
 
 		this.$container.appendChild(el('div', {'class':'add_goal'}, [
-			el('label', null, ['New Goal']),
+			el('label', null, ['New Goal Name']),
 			add_goal_name,
 			el('br'),
 			el('label', null, ['Total Required']),

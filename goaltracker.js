@@ -50,10 +50,10 @@ window.GoalTracker = Class.create({
 
 				var total_days = Math.floor((end_date - start_date) / 86400000);
 				var elapsed_days = Math.floor((now - start_date) / 86400000);
-				var days_left = Math.max(0, total_days - elapsed_days);
+				var days_left = Math.max(1, total_days - elapsed_days - 1);
 
 				var finished = false;
-				var pace_percent = elapsed_days / total_days;
+				var pace_percent = (elapsed_days + 1) / total_days;
 				var pace_total = pace_percent * goal.total;
 				if (elapsed_days > total_days) {
 					finished = true;
@@ -119,7 +119,7 @@ window.GoalTracker = Class.create({
 				var per_day_str = Math.ceil((goal.total - goal_progress) / days_left);
 
 				this.$container.appendChild(el('div', {'class':'goal'}, [
-					el('h2', null, [name + ' (' + per_day_str + ' / day)']),
+					el('h2', null, [name + ' (' + per_day_str + ' / day) due ' + (end_date.getMonth()+1) + '/' + (end_date.getDate()+1) + '/' + (end_date.getFullYear())]),
 					el('div', {'class':'outer_progress'}, [
 						el('div', {'class':'pace_progress', 'style':'width:'+pace_percent_str+'%'}),
 						el('div', {'class':'inner_progress', 'style':'width:'+goal_percent_str+'%'})

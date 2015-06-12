@@ -44,6 +44,7 @@ window.GoalTracker = Class.create({
 				var goal = this.goals[name];
 
 				var now = new Date();
+				var today_str = (now.getMonth()+1) + '/' + (now.getDate()+1) + '/' + (now.getFullYear());
 				
 				var start_date = new Date(Date.parse(goal.start));
 				var end_date = new Date(Date.parse(goal.end));
@@ -94,11 +95,21 @@ window.GoalTracker = Class.create({
 					daily_progress[date_str] += entry.progress
 				});
 
+				var per_day_str = Math.ceil((goal.total - goal_progress) / days_left);
+
 				if (progress_container) {
 					for (var date_str in daily_progress) {
+						var day_current = daily_progress[date_str];
+						var day_left = Math.max(0, per_day_str - day_current);
+
+						var day_progress_str = day_current;
+						if (date_str == today_str) {
+							day_progress_str += ' (' + day_left + ' left)';
+						}
+
 						var log_div = el('div', {'class':'log_entry'}, [
 							el('label', null, [date_str]),
-							el('span', null, [daily_progress[date_str]])
+							el('span', null, [day_progress_str])
 						]);
 
 						progress_container.appendChild(log_div);
@@ -111,12 +122,10 @@ window.GoalTracker = Class.create({
 
 				var pace_str = goal_percent_str + '% of ' + goal.total;
 				if (goal_percent > pace_percent) {
-					pace_str += ' (' + (goal_percent_str - pace_percent_str) + '% ahead of pace)';
+					pace_str += ' (' + (goal_percent_str - pace_percent_str).toPrecision(2) + '% ahead of pace)';
 				} else {
-					pace_str += ' (' + (pace_percent_str - goal_percent_str) + '% behind pace)';
+					pace_str += ' (' + (pace_percent_str - goal_percent_str).toPrecision(2) + '% behind pace)';
 				}
-
-				var per_day_str = Math.ceil((goal.total - goal_progress) / days_left);
 
 				this.$container.appendChild(el('div', {'class':'goal'}, [
 					el('h2', null, [name + ' (' + per_day_str + ' / day) due ' + (end_date.getMonth()+1) + '/' + (end_date.getDate()+1) + '/' + (end_date.getFullYear())]),

@@ -50,6 +50,7 @@ window.GoalTracker = Class.create({
 
 				var total_days = Math.floor((end_date - start_date) / 86400000);
 				var elapsed_days = Math.floor((now - start_date) / 86400000);
+				var days_left = Math.max(0, total_days - elapsed_days);
 
 				var finished = false;
 				var pace_percent = elapsed_days / total_days;
@@ -70,10 +71,10 @@ window.GoalTracker = Class.create({
 						add_progress_button
 					]);
 
-					add_progress_button.observe('click', function(e) {
+					add_progress_button.observe('click', function(name, add_progress_total, e) {
 						Event.stop(e);
-						that.add_progress(name, add_progress_total)
-					});
+						that.add_progress(name, add_progress_total);
+					}.bind(that, name, add_progress_total));
 
 					progress_container = el('div', {'class':'task_progress'}, [
 						add_progress_container
@@ -81,21 +82,28 @@ window.GoalTracker = Class.create({
 				}
 
 				var goal_progress = 0;
+				var daily_progress = {};
 				goal.log.forEach(function(entry) {
 					goal_progress += entry.progress;
 
-					if (progress_container) {
-						var log_date = new Date(Date.parse(entry.date));
-						var date_str = (log_date.getMonth()+1) + '/' + (log_date.getDate()+1) + '/' + (log_date.getFullYear());
+					var log_date = new Date(Date.parse(entry.date));
+					var date_str = (log_date.getMonth()+1) + '/' + (log_date.getDate()+1) + '/' + (log_date.getFullYear());
 
+					if (!daily_progress[date_str])
+						daily_progress[date_str] = 0;
+					daily_progress[date_str] += entry.progress
+				});
+
+				if (progress_container) {
+					for (var date_str in daily_progress) {
 						var log_div = el('div', {'class':'log_entry'}, [
 							el('label', null, [date_str]),
-							el('span', null, [entry.progress])
+							el('span', null, [daily_progress[date_str]])
 						]);
 
 						progress_container.appendChild(log_div);
 					}
-				});
+				}
 
 				var goal_percent = goal_progress / goal.total;
 				var goal_percent_str = (goal_percent * 100).toPrecision(2);
@@ -108,8 +116,10 @@ window.GoalTracker = Class.create({
 					pace_str += ' (' + (pace_percent_str - goal_percent_str) + '% behind pace)';
 				}
 
+				var per_day_str = Math.ceil((goal.total - goal_progress) / days_left);
+
 				this.$container.appendChild(el('div', {'class':'goal'}, [
-					el('h2', null, [name]),
+					el('h2', null, [name + ' (' + per_day_str + ' / day)']),
 					el('div', {'class':'outer_progress'}, [
 						el('div', {'class':'pace_progress', 'style':'width:'+pace_percent_str+'%'}),
 						el('div', {'class':'inner_progress', 'style':'width:'+goal_percent_str+'%'})
@@ -156,6 +166,7 @@ window.GoalTracker = Class.create({
 		this.build();
 	},
 	add_progress: function(goal_name, $progress_total) {
+		console.log(goal_name, $progress_total);
 		if (!this.goals[goal_name]) {
 			alert("Invalid goal " + goal_name);
 			return false;
@@ -187,7 +198,6 @@ function el(type, attrs, children) {
 	if (children) {
 		children.forEach(function(child){
 			if (child) {
-				console.log("Append child " + child, typeof child);
 				if (typeof child != 'object') {
 					child = document.createTextNode(child);
 				} 

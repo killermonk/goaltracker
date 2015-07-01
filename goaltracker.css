@@ -1,7 +1,14 @@
+body {
+	font-family: 'Lucida Grande', 'Helvetica Neue', sans-serif;
+	font-size: 13px;
+}
+
+.error {
+	color: #c00;
+}
+
 label {
-	width: 125px;
 	font-weight: bold;
-	display: inline-block;
 	padding-bottom: 5px;
 }
 

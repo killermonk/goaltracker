@@ -23,7 +23,14 @@ window.GoalTracker = Class.create({
 		add_goal_submit.observe('click', function(e) {
 			Event.stop(e);
 
-			that.add_goal(add_goal_name, add_goal_total, add_goal_days);
+			var name = $F(add_goal_name);
+			if (that.goals[name]) {
+				if (confirm("Are you sure you want to edit " + name + "?")) {
+					that.edit_goal(add_goal_name, add_goal_total, add_goal_days);
+				}
+			} else {
+				that.add_goal(add_goal_name, add_goal_total, add_goal_days);
+			}
 		});
 
 		this.$container.appendChild(el('div', {'class':'add_goal'}, [
@@ -45,7 +52,7 @@ window.GoalTracker = Class.create({
 
 				var now = new Date();
 				var today_str = (now.getMonth()+1) + '/' + (now.getDate()+1) + '/' + (now.getFullYear());
-				
+
 				var start_date = new Date(Date.parse(goal.start));
 				var end_date = new Date(Date.parse(goal.end));
 
@@ -63,6 +70,7 @@ window.GoalTracker = Class.create({
 				}
 
 				var progress_container = null;
+				var edit_progress_button = null;
 				if (!finished) {
 					var add_progress_total = el('input', {'type':'text'});
 					var add_progress_button = el('input', {'type':'submit'});
@@ -77,10 +85,29 @@ window.GoalTracker = Class.create({
 						that.add_progress(name, add_progress_total);
 					}.bind(that, name, add_progress_total));
 
+					edit_progress_button = el('input', {'type':'submit', 'value':'Edit'});
+
+					edit_progress_button.observe('click', function(name, total, days_left, e) {
+						Event.stop(e);
+
+						$(add_goal_name).setValue(name);
+						$(add_goal_total).setValue(total);
+						$(add_goal_days).setValue(days_left);
+					}.bind(that, name, goal.total, total_days - elapsed_days));
+
 					progress_container = el('div', {'class':'task_progress'}, [
 						add_progress_container
 					]);
 				}
+
+				var delete_button = el('input', {'type':'submit', 'value':'delete'});
+				delete_button.observe('click', function(name){
+					if (name && confirm("Are you sure you want to delete " + name + "?")) {
+						delete this.goals[name];
+						this.save();
+						this.build();
+					}
+				}.bind(that, name));
 
 				var goal_progress = 0;
 				var daily_progress = {};
@@ -128,7 +155,11 @@ window.GoalTracker = Class.create({
 				}
 
 				this.$container.appendChild(el('div', {'class':'goal'}, [
-					el('h2', null, [name + ' (' + per_day_str + ' / day) due ' + (end_date.getMonth()+1) + '/' + (end_date.getDate()+1) + '/' + (end_date.getFullYear())]),
+					el('h2', null, [
+						el('span', null, [name + ' (' + per_day_str + ' / day) due ' + (end_date.getMonth()+1) + '/' + (end_date.getDate()) + '/' + (end_date.getFullYear())]),
+						edit_progress_button,
+						delete_button
+					]),
 					el('div', {'class':'outer_progress'}, [
 						el('div', {'class':'pace_progress', 'style':'width:'+pace_percent_str+'%'}),
 						el('div', {'class':'inner_progress', 'style':'width:'+goal_percent_str+'%'})
@@ -139,11 +170,7 @@ window.GoalTracker = Class.create({
 			}
 		}
 	},
-	add_goal: function($goal_name, $goal_total, $goal_days) {
-		var name = $F($goal_name);
-		var total = Number($F($goal_total));
-		var days = Number($F($goal_days));
-		
+	_validate_goal: function(name, total, days) {
 		if (!name || name.length == 0) {
 			alert("Goal Name is required");
 			return false;
@@ -154,6 +181,17 @@ window.GoalTracker = Class.create({
 		}
 		if (isNaN(days) || days <= 0) {
 			alert("Days value must be a number greater than 0");
+			return false;
+		}
+
+		return true;
+	},
+	add_goal: function($goal_name, $goal_total, $goal_days) {
+		var name = $F($goal_name);
+		var total = Number($F($goal_total));
+		var days = Number($F($goal_days));
+
+		if (!this._validate_goal(name, total, days)) {
 			return false;
 		}
 
@@ -174,8 +212,28 @@ window.GoalTracker = Class.create({
 		this.save()
 		this.build();
 	},
+	edit_goal: function($goal_name, $goal_total, $goal_days) {
+		var name = $F($goal_name);
+		var total = Number($F($goal_total));
+		var days = Number($F($goal_days));
+
+		if (!this._validate_goal(name, total, days)) {
+			return false;
+		}
+
+		if (! this.goals[name]) {
+			alert("Goal " + name + " does not exist. Please try again");
+			return false;
+		}
+
+		var goal = this.goals[name];
+		goal.total = total;
+		goal.end = new Date(new Date().getTime() + days*86400000);
+
+		this.save();
+		this.build();
+	},
 	add_progress: function(goal_name, $progress_total) {
-		console.log(goal_name, $progress_total);
 		if (!this.goals[goal_name]) {
 			alert("Invalid goal " + goal_name);
 			return false;

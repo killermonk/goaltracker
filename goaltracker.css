@@ -12,6 +12,12 @@ label {
 	padding-bottom: 5px;
 }
 
+.goal .progress_info {
+	color: white;
+	font-weight: bold;
+	white-space: nowrap;
+}
+
 .goal .outer_progress {
 	width: 250px;
 	height: 15px;

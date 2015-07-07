@@ -13,38 +13,23 @@ label {
 }
 
 .goal .progress_info {
-	color: white;
+	color: black;
 	font-weight: bold;
 	white-space: nowrap;
 }
-
-.goal .outer_progress {
-	width: 250px;
-	height: 15px;
-	float: left;
-	background-color: #ccc;
-	position: relative;
+.goal .progress-bar {
+	background-color: lightblue;
 }
-.goal .progress_text {
-	padding-left: 10px;
+.goal .panel-title h4 .title {
+	margin-left: 25px;
 }
-.goal .pace_progress {
-	height: 15px;
-	background-color: #c00;
-	position: relative;
-	left: 0px;
-	top: 0px;
+.goal .ui-state-focus {
+	outline: none;
 }
-.goal .inner_progress {
-	height: 15px;
-	background-color: #0c0;
-	position: relative;
-	left: 0px;
-	top: -15px;
+.goal .log_entry {
+	margin-left: 10px;
 }
-.goal .progress_text {
-	float: left;
-}
-.goal .task_progress {
-	clear: both;
+.goal .log_entry label {
+	padding-top: 10px;
+	padding-bottom: 0px;
 }

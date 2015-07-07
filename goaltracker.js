@@ -1,4 +1,4 @@
-angular.module('GoalTracker', ['ui.bootstrap', 'ngAnimate'])
+angular.module('GoalTracker', ['ui.bootstrap', 'ui.bootstrap.accordion', 'ngAnimate'])
 .factory('gtPersist', function(){
 	var prefix = 'gt_';
 
@@ -35,8 +35,8 @@ angular.module('GoalTracker', ['ui.bootstrap', 'ngAnimate'])
 		get: function(name) {
 			var goals = gtPersist.get('goals', {});
 			if (name) {
-				if (goal[name])
-					return _deserializeGoal(goal[name]);
+				if (goals[name])
+					return _deserializeGoal(goals[name]);
 				else
 					return null;
 			} else {
@@ -51,19 +51,26 @@ angular.module('GoalTracker', ['ui.bootstrap', 'ngAnimate'])
 			var goals = gtPersist.get('goals', {});
 			goals[name] = goal;
 			gtPersist.put('goals', goals);
+		},
+		remove: function(name) {
+			var goals = gtPersist.get('goals', {});
+			delete goals[name];
+			gtPersist.put('goals', goals);
 		}
 	};
 })
 .controller('GoalTrackerCtrl', GoalTrackerCtrl)
 .controller('AddGoalCtrl', AddGoalCtrl)
 .controller('EditGoalCtrl', EditGoalCtrl)
-.controller('DeleteGoalCtrl', DeleteGoalCtrl);
+.controller('DeleteGoalCtrl', DeleteGoalCtrl)
+.controller('AddProgressCtrl', AddProgressCtrl);
 
 
 function GoalTrackerCtrl($scope, $modal, $timeout, gtPersist, gtGoals) {
 	$scope.goals = {};
 	$scope.alerts = [];
 	$scope.goal_info = {};
+	$scope.status = {};
 
 	$scope.$watch('goals', _rebuildGoals, true);
 
@@ -92,10 +99,11 @@ function GoalTrackerCtrl($scope, $modal, $timeout, gtPersist, gtGoals) {
 	function _success(msg, auto_close) {
 		_alert('success', msg, auto_close);
 	}
+	$scope.closeAlert = function(idx) {
+		$scope.alerts.splice(idx, 1);
+	};
 
 	function _rebuildGoals() {
-		console.log("Rebuilding goals", $scope.goals);
-
 		var active_goals = {};
 		angular.forEach($scope.goals, function(goal, name) {
 			active_goals[name] = true;
@@ -152,9 +160,6 @@ function GoalTrackerCtrl($scope, $modal, $timeout, gtPersist, gtGoals) {
 				end_date: goal.end.format("MM/DD/YYYY"),
 				progress_log: daily_progress
 			};
-			/* @@ */
-			console.log('Goal Info', name, $scope.goal_info);
-			/* ## */
 		});
 
 		// Remove goals that aren't active
@@ -191,7 +196,7 @@ function GoalTrackerCtrl($scope, $modal, $timeout, gtPersist, gtGoals) {
 		gtGoals.save(name, goal);
 	}
 
-	$scope.showAddModal = function() {
+	$scope.showAddGoal = function() {
 		var modalInstance = $modal.open({
 			templateUrl: 'partial/goal_dialog.html',
 			controller: 'AddGoalCtrl'
@@ -199,9 +204,130 @@ function GoalTrackerCtrl($scope, $modal, $timeout, gtPersist, gtGoals) {
 
 		modalInstance.result.then(function(goal) {
 			try {
-				_addGoal(name, wordCount, daysRemaining);
+				_addGoal(goal.name, goal.word_count, goal.days_remaining);
 			} catch (error) {
-				// TODO handle error
+				_error(error);
+			}
+		});
+	};
+
+	function _editGoal(name, newName, wordCount, daysRemaining) {
+		_validateGoal(newName, wordCount, daysRemaining);
+
+		var existing = $scope.goals[name];
+		if (!existing)
+			throw 'Goal "' + name + '" does not exist';
+
+		var end_date = moment().startOf('day').add(daysRemaining, 'day');
+		var goal = {
+			total: wordCount,
+			start: existing.start,
+			end: end_date,
+			log: existing.log
+		};
+
+		$scope.goals[newName] = goal;
+		gtGoals.save(newName, goal);
+
+		// TODO delete the goal, this isn't working for some reason
+		if (newName !== name) {
+			delete $scope.goals[name];
+			gtGoals.remove(name);
+		}
+	}
+
+	$scope.showEditGoal = function(name) {
+		var goal = $scope.goals[name];
+		if (!goal)
+			throw 'Goal "' + name + '" does not exist';
+
+		console.log(
+			"Start:", goal.start.format("MM/DD/YYYY HH:mm:ss"),
+			"End:", goal.end.format("MM/DD/YYYY HH:mm:ss"),
+			"Duration:", moment.duration(goal.end - moment()).asDays());
+
+		var scope = $scope.$new();
+		scope.goal = {
+			name: name,
+			word_count: goal.total,
+			days_remaining: Math.floor(moment.duration(goal.end - moment()).asDays())
+		};
+
+		var modalInstance = $modal.open({
+			templateUrl: 'partial/goal_dialog.html',
+			controller: 'AddGoalCtrl',
+			scope: scope
+		});
+
+		modalInstance.result.then(function(goal) {
+			try {
+				_editGoal(name, goal.name, goal.word_count, goal.days_remaining);
+			} catch (error) {
+				_error(error);
+			}
+		});
+	};
+
+	function _validateProgress(date, count) {
+		if (angular.isUndefined(date) || date.length == 0 || !moment(new Date(date)).isValid())
+			throw 'Progress date is invalid';
+
+		if (angular.isUndefined(count) || !Number.isFinite(count) || count <= 0)
+			throw 'Progress count must be a number greater than 0';
+	}
+
+	function _addProgress(name, date, count) {
+		_validateProgress(date, count);
+
+		var goal = $scope.goals[name];
+		if (!goal)
+			throw 'Goal "' + name + '" does not exist';
+
+		var dt = moment(new Date(date));
+
+		goal.log.push({
+			date: dt,
+			progress: count
+		});
+		gtGoals.save(name, goal);
+	}
+
+	$scope.showAddProgress = function(name) {
+		var goal = $scope.goals[name];
+		if (!goal)
+			throw 'Goal "' + name + '" does not exist';
+
+		var scope = $scope.$new();
+		scope.params = {
+			name: name,
+			format: 'MM/dd/yyyy',
+			start_date: goal.start.format('MM/DD/YYYY'),
+			today: moment().format('MM/DD/YYYY')
+		};
+		scope.dateOptions = {};
+		scope.dt_open = false;
+		scope.progress = {
+			date: moment().format('MM/DD/YYYY')
+		};
+
+		scope.toggleDatePicker = function($event) {
+			$event.preventDefault();
+			$event.stopPropagation();
+
+			scope.dt_open = !scope.dt_open;
+		};
+
+		var modalInstance = $modal.open({
+			templateUrl: 'partial/progress_dialog.html',
+			controller: 'AddProgressCtrl',
+			scope: scope
+		});
+
+		modalInstance.result.then(function(progress) {
+			try {
+				_addProgress(name, progress.date, progress.count);
+			} catch (error) {
+				_error(error);
 			}
 		});
 	};
@@ -221,4 +347,12 @@ function EditGoalCtrl($scope) {
 
 function DeleteGoalCtrl($scope) {
 
+}
+
+function AddProgressCtrl($scope, $modalInstance) {
+	$scope.cancel = $modalInstance.dismiss;
+
+	$scope.save = function(progress) {
+		$modalInstance.close(progress);
+	};
 }

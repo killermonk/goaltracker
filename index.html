@@ -29,7 +29,10 @@
 				<ul class="nav navbar-nav">
 					<li>
 						<a role="button">
-							<div class="btn btn-success" ng-click="showAddModal()">New Goal</div>
+							<div class="btn btn-success" ng-click="showAddGoal()">
+								<i class="glyphicon glyphicon-plus"></i>
+								New Goal
+							</div>
 						</a>
 					<li>
 				</ul>
@@ -46,35 +49,56 @@
 			{{alert.msg}}
 		</alert>
 
-		<div class="goal"
-			ng-repeat="(name, info) in goal_info">
-			<h2>
-				<span>{{name}} ({{info.words_per_day}} / day) due {{info.end_date}}</span>
-			</h2>
-			<div>Words today:</div>
-			<progressbar max="info.words_per_day" value="info.today_progress">
-				<span class="progress_info">{{info.today_progress}} / {{info.words_per_day}}</span>
-			</progressbar>
+		<accordion>
+			<accordion-group class="goal"
+				ng-repeat="(name, info) in goal_info"
+				is-open="status[name]">
+				<accordion-heading>
+					<h4>
+						<i class="pull-left glyphicon" ng-class="{'glyphicon-chevron-down': status[name], 'glyphicon-chevron-right': !status[name]}"></i>
+						<span class="title">{{name}} ({{info.words_per_day}} / day) due {{info.end_date}}</span>
+					</h4>
+				</accordion-heading>
 
-			<div>Pace progress:</div>
-			<progressbar max="info.end_of_day_count" value="info.goal_progress">
-				<span class="progress_info">{{info.goal_progress}} / {{info.end_of_day_count}}</span>
-			</progressbar>
+				<a role="button">
+					<div class="btn btn-primary" ng-click="showEditGoal(name)">
+						<i class="glyphicon glyphicon-pencil"></i>
+						Edit
+					</div>
+				</a>
+				<p />
 
-			<div>Overall Progress:</div>
-			<progressbar max="info.total" value="info.goal_progress">
-				<span class="progress_info">{{info.goal_progress}} / {{info.total}}</span>
-			</progressbar>
+				<div>Words today:</div>
+				<progressbar max="info.words_per_day" value="info.today_progress">
+					<span class="progress_info">{{info.today_progress}} / {{info.words_per_day}} &ndash; {{info.today_progress / info.words_per_day * 100 | number:0}}%</span>
+				</progressbar>
 
-			<div class="task_progress" ng-if="info.progress_log">
-				<h3>Progress Log</h3>
-				<div class="log_entry"
-					ng-repeat="(date, value) in info.progress_log">
-					<label>{{date}}</label>
-					<span>{{value}} words</span>
-			</div>
-		</div>
-	</div>
+				<div>Pace progress:</div>
+				<progressbar max="info.end_of_day_count" value="info.goal_progress">
+					<span class="progress_info">{{info.goal_progress}} / {{info.end_of_day_count}} &ndash; {{info.goal_progress / info.end_of_day_count * 100 | number:0}}%</span>
+				</progressbar>
+
+				<div>Overall Progress:</div>
+				<progressbar max="info.total" value="info.goal_progress">
+					<span class="progress_info">{{info.goal_progress}} / {{info.total}} &ndash; {{info.goal_progress / info.total * 100 | number:0}}%</span>
+				</progressbar>
+
+				<div class="task_progress" ng-if="info.progress_log">
+					<h3>Progress Log</h3>
+					<a role="button">
+						<div class="btn btn-success" ng-click="showAddProgress(name)">
+							<i class="glyphicon glyphicon-plus"></i>
+							Add Progress
+						</div>
+					</a>
+					<div class="log_entry"
+						ng-repeat="(date, value) in info.progress_log">
+						<label>{{date}}</label>
+						<span>&mdash; {{value}} words ({{value / info.words_per_day * 100 | number:0}}%)</span>
+					</div>
+				</div>
+			</accordion-group>
+		</accordion>
 
 	</div>
 
@@ -86,55 +110,128 @@
 
 	<div class="modal-body">
 		<form name="goal_form">
-			<label for="goal_name">Name:
-				<span role="alert" ng-show="goal_form.$submitted || goal_form.goal_name.$touched">
-					<span class="error" ng-show="goal_form.goal_name.$error.required">Required!</span>
-				</span>
-				<br/>
-				<input id="goal_name"
-					name="goal_name"
-					type="text"
-					ng-model="goal.name"
-					required />
-			</label>
-			<br/>
-
-			<label for="goal_word_count">Word Count Goal:
-				<span role="alert" ng-show="goal_form.$submitted || goal_form.goal_word_count.$touched">
-					<span class="error" ng-show="goal_form.goal_word_count.$error.required">Required!</span>
-					<span class="error" ng-show="goal_form.goal_word_count.$error.number">Not a valid number!</span>
-				</span>
-				<br/>
-				<input id="goal_word_count"
-					name="goal_word_count"
-					type="number"
-					ng-model="goal.word_count"
-					min="100"
-					required />
-			</label>
-			<br/>
-
-			<label for="goal_days_remaining">Due in days:
-				<span role="alert" ng-show="goal_form.$submitted || goal_form.goal_days_remaining.$touched">
-					<span class="error" ng-show="goal_form.goal_days_remaining.$error.required">Required!</span>
-					<span class="error" ng-show="goal_form.goal_days_remaining.$error.number">Not a valid number!</span>
-				</span>
-				<br/>
-				<input id="goal_days_remaining"
-					name="goal_days_remaining"
-					type="number"
-					ng-model="goal.days_remaining"
-					min="1"
-					required />
-			</label>
-			<br/>
-
+			<div class="row">
+				<div class="col-md-6">
+					<label for="goal_name">Name:
+						<span role="alert" ng-show="goal_form.$submitted || goal_form.goal_name.$touched">
+							<span class="error" ng-show="goal_form.goal_name.$error.required">Required!</span>
+						</span>
+					</label>
+					<p class="input-group">
+						<input id="goal_name"
+							class="form-control"
+							name="goal_name"
+							type="text"
+							ng-model="goal.name"
+							required />
+					</p>
+				</div>
+				<div class="col-md-6">
+					<label for="goal_word_count">Word Count Goal:
+						<span role="alert" ng-show="goal_form.$submitted || goal_form.goal_word_count.$touched">
+							<span class="error" ng-show="goal_form.goal_word_count.$error.required">Required!</span>
+							<span class="error" ng-show="goal_form.goal_word_count.$error.number">Not a valid number!</span>
+							<span class="error" ng-show="goal_form.goal_word_count.$error.min">Must be larger than 100!</span>
+						</span>
+					</label>
+					<p class="input-group">
+						<input id="goal_word_count"
+							class="form-control"
+							name="goal_word_count"
+							type="number"
+							ng-model="goal.word_count"
+							min="100"
+							required />
+					</p>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-6">
+					<label for="goal_days_remaining">Due in days:
+						<span role="alert" ng-show="goal_form.$submitted || goal_form.goal_days_remaining.$touched">
+							<span class="error" ng-show="goal_form.goal_days_remaining.$error.required">Required!</span>
+							<span class="error" ng-show="goal_form.goal_days_remaining.$error.number">Not a valid number!</span>
+							<span class="error" ng-show="goal_form.goal_days_remaining.$error.min">Must be larger than 0!</span>
+						</span>
+					</label>
+					<p class="input-group">
+						<input id="goal_days_remaining"
+							class="form-control"
+							name="goal_days_remaining"
+							type="number"
+							ng-model="goal.days_remaining"
+							min="1"
+							required />
+					</p>
+				</div>
+			</div>
 		</form>
 	</div>
 
 	<div class="modal-footer">
 		<input type="button" class="btn btn-default" ng-click="cancel()" value="Close" />
-		<input type="submit" class="btn btn-primary" ng-click="save(goal)" value="Save" />
+		<input type="submit" class="btn btn-primary" ng-disabled="!goal_form.$valid" ng-click="save(goal)" value="Save" />
+	</div>
+</script>
+
+<script type="text/ng-template" id="partial/progress_dialog.html">
+	<div class="modal-header">
+		<h4>Add progress for {{params.name}}</h4>
+	</div>
+
+	<div class="modal-body">
+		<form name="progress_form">
+			<div class="row">
+				<div class="col-md-6">
+					<label for="progress_date">Date:
+						<span role="alert" ng-show="progress_form.$submitted || progress_form.progress_date.$touched">
+							<span class="error" ng-show="progress_form.progress_date.$error.required">Required!</span>
+							<span class="error" ng-show="progress_form.progress_date.$invalid">Invalid date!</span>
+						</span>
+					</label>
+					<p class="input-group">
+						<input datepicker-popup="{{params.format}}" type="text" class="form-control datepopup"
+							id="progress_date" name="progress_date"
+							is-open="$parent.dt_open"
+							ng-model="progress.date"
+							ng-focus="toggleDatePicker($event)"
+							ng-disabled="true"
+							init-date="params.today"
+							min-date="params.start_date"
+							max-date="params.today"
+							datepicker-options="dateOptions"
+							close-text="Close"
+							value="{{params.today}}"
+							required />
+						<span class="input-group-btn">
+							<button type="button" class="btn btn-default" ng-click="toggleDatePicker($event)"><i class="glyphicon glyphicon-calendar"></i></button>
+						</span>
+					</p>
+				</div>
+				<div class="col-md-6">
+					<label for="progress_count">Word Count:
+						<span role="alert" ng-show="progress_form.$submitted || progress_form.progress_count.$touched">
+							<span class="error" ng-show="progress_form.progress_count.$error.required">Required!</span>
+							<span class="error" ng-show="progress_form.progress_count.$error.number">Not a valid number!</span>
+						</span>
+					</label>
+					<p class="input-group">
+						<input id="progress_count"
+							class="form-control"
+							name="progress_count"
+							type="number"
+							ng-model="progress.count"
+							min="1"
+							required />
+					</p>
+				</div>
+			</div>
+		</form>
+	</div>
+
+	<div class="modal-footer">
+		<input type="button" class="btn btn-default" ng-click="cancel()" value="Close" />
+		<input type="submit" class="btn btn-primary" ng-disabled="!progress_form.$valid" ng-click="save(progress)" value="Save" />
 	</div>
 </script>
 

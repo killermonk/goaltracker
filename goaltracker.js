@@ -1,4 +1,4 @@
-angular.module('GoalTracker', ['ui.bootstrap', 'ui.bootstrap.accordion', 'ngAnimate'])
+angular.module('GoalTracker', ['ngAnimate', 'ui.bootstrap'])
 .factory('gtPersist', function(){
 	var prefix = 'gt_';
 

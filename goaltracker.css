@@ -12,6 +12,16 @@ label {
 	padding-bottom: 5px;
 }
 
+.goal .panel-title > a {
+	outline: 0 !important;
+}
+.goal .panel-title a[role="button"] {
+	margin-left: 5px;
+}
+.goal .panel-title a.pull-up {
+	margin-top: -7px;
+}
+
 .goal .progress_info {
 	color: black;
 	font-weight: bold;

@@ -162,7 +162,11 @@ function GoalTrackerCtrl($scope, $modal, $timeout, gtPersist, gtGoals) {
 			};
 		});
 
-		// Remove goals that aren't active
+		angular.forEach($scope.goal_info, function(value, name) {
+			if (! active_goals[name]) {
+				delete $scope.goal_info[name];
+			}
+		});
 	};
 
 	function _validateGoal(name, wordCount, daysRemaining) {
@@ -227,24 +231,22 @@ function GoalTrackerCtrl($scope, $modal, $timeout, gtPersist, gtGoals) {
 		};
 
 		$scope.goals[newName] = goal;
+		$scope.status[newName] = true;
 		gtGoals.save(newName, goal);
 
-		// TODO delete the goal, this isn't working for some reason
 		if (newName !== name) {
 			delete $scope.goals[name];
 			gtGoals.remove(name);
 		}
 	}
 
-	$scope.showEditGoal = function(name) {
+	$scope.showEditGoal = function($event, name) {
+		$event.preventDefault();
+		$event.stopPropagation();
+
 		var goal = $scope.goals[name];
 		if (!goal)
 			throw 'Goal "' + name + '" does not exist';
-
-		console.log(
-			"Start:", goal.start.format("MM/DD/YYYY HH:mm:ss"),
-			"End:", goal.end.format("MM/DD/YYYY HH:mm:ss"),
-			"Duration:", moment.duration(goal.end - moment()).asDays());
 
 		var scope = $scope.$new();
 		scope.goal = {
@@ -255,7 +257,7 @@ function GoalTrackerCtrl($scope, $modal, $timeout, gtPersist, gtGoals) {
 
 		var modalInstance = $modal.open({
 			templateUrl: 'partial/goal_dialog.html',
-			controller: 'AddGoalCtrl',
+			controller: 'EditGoalCtrl',
 			scope: scope
 		});
 
@@ -267,6 +269,28 @@ function GoalTrackerCtrl($scope, $modal, $timeout, gtPersist, gtGoals) {
 			}
 		});
 	};
+
+	$scope.showDeleteGoal = function($event, name) {
+		$event.preventDefault();
+		$event.stopPropagation();
+
+		var goal = $scope.goals[name];
+		if (!goal)
+			throw 'Goal "' + name + '" does not exist';
+
+		var scope = $scope.$new();
+		scope.goal_name = name;
+
+		var modalInstance = $modal.open({
+			templateUrl: 'partial/delete_goal_confirm.html',
+			controller: 'DeleteGoalCtrl',
+			scope: scope
+		});
+		modalInstance.result.then(function() {
+			delete $scope.goals[name];
+			gtGoals.remove(name);
+		});
+	}
 
 	function _validateProgress(date, count) {
 		if (angular.isUndefined(date) || date.length == 0 || !moment(new Date(date)).isValid())
@@ -341,12 +365,17 @@ function AddGoalCtrl($scope, $modalInstance) {
 	};
 }
 
-function EditGoalCtrl($scope) {
+function EditGoalCtrl($scope, $modalInstance) {
+	$scope.cancel = $modalInstance.dismiss;
 
+	$scope.save = function(goal) {
+		$modalInstance.close(goal);
+	};
 }
 
-function DeleteGoalCtrl($scope) {
-
+function DeleteGoalCtrl($scope, $modalInstance) {
+	$scope.cancel = $modalInstance.dismiss;
+	$scope.save = $modalInstance.close;
 }
 
 function AddProgressCtrl($scope, $modalInstance) {

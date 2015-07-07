@@ -54,19 +54,23 @@
 				ng-repeat="(name, info) in goal_info"
 				is-open="status[name]">
 				<accordion-heading>
-					<h4>
-						<i class="pull-left glyphicon" ng-class="{'glyphicon-chevron-down': status[name], 'glyphicon-chevron-right': !status[name]}"></i>
-						<span class="title">{{name}} ({{info.words_per_day}} / day) due {{info.end_date}}</span>
-					</h4>
+				<h4>
+					<a role="button" class="pull-right pull-up">
+						<div class="btn btn-danger" ng-click="showDeleteGoal($event, name)">
+							<i class="glyphicon glyphicon-remove"></i>
+							Delete
+						</div>
+					</a>
+					<a role="button" class="pull-right pull-up">
+						<div class="btn btn-primary" ng-click="showEditGoal($event, name)">
+							<i class="glyphicon glyphicon-pencil"></i>
+							Edit
+						</div>
+					</a>
+					<i class="pull-left glyphicon" ng-class="{'glyphicon-chevron-down': status[name], 'glyphicon-chevron-right': !status[name]}"></i>
+					<span class="title">{{name}} ({{info.words_per_day}} / day) due {{info.end_date}}</span>
+				</h4>
 				</accordion-heading>
-
-				<a role="button">
-					<div class="btn btn-primary" ng-click="showEditGoal(name)">
-						<i class="glyphicon glyphicon-pencil"></i>
-						Edit
-					</div>
-				</a>
-				<p />
 
 				<div>Words today:</div>
 				<progressbar max="info.words_per_day" value="info.today_progress">
@@ -102,6 +106,24 @@
 
 	</div>
 
+
+<script type="text/ng-template" id="partial/delete_goal_confirm.html">
+	<div class="modal-header">
+		<h4>Are you sure?</h4>
+	</div>
+
+	<div class="modal-body">
+		<h4>Are you sure you want to delete {{goal_name}}?</h4>
+	</div>
+
+	<div class="modal-footer">
+		<input type="button" class="btn btn-default" ng-click="cancel()" value="Close" />
+		<a role="button" class="btn btn-danger" ng-click="save()">
+			<i class="glyphicon glyphicon-remove"></i>
+			Delete
+		</a>
+	</div>
+</script>
 
 <script type="text/ng-template" id="partial/goal_dialog.html">
 	<div class="modal-header">

@@ -11,6 +11,7 @@ class Goal(models.Model):
     class Meta:
         unique_together = (('user','name'),)
 
+
 class ProgressLog(models.Model):
     goal = models.ForeignKey(Goal)
     date = models.DateField('entry date')

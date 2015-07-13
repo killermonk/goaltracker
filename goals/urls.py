@@ -1,7 +1,8 @@
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 
 from . import views
 
-urlpatterns = patterns('goals.api',
-    url(r'^$', views.goals, name='goals')
-)
+urlpatterns = [
+    url(r'^$', views.goal_list),
+    url(r'^(?P<id>[0-9]+)/$', views.goal_detail),
+]

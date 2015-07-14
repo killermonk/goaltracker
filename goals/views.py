@@ -1,5 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
+
 from goaltracker.json import JsonResponse, JsonRequest
 from serializers import GoalSerializer
 from models import Goal
@@ -21,13 +23,9 @@ def goal_list(request):
 
 @login_required
 def goal_detail(request, id):
-    try:
-        goal = Goal.objects.get(pk=id)
-
-        if goal.user != request.user:
-           raise Goal.DoesNotExist()
-    except Goal.DoesNotExist:
-        return HttpResponse(status=404)
+    goal = get_object_or_404(Goal, pk=id)
+    if goal.user != request.user:
+        raise HttpResponse(status=404)
 
     if request.method == 'GET':
         serializer = GoalSerializer(goal)

@@ -24,8 +24,5 @@ urlpatterns = [
     url(r'^api/goals/', include('goals.urls')),
     url(r'^admin/', include(admin.site.urls)),
 
-    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-
-    url(r'^accounts/login/$', views.login, name='login'),
-    url(r'^accounts/logout/$', 'django.contrib.auth.views.logout', name='logout'),
+    url(r'^auth/', include('rest_framework.urls', namespace='rest_framework')),
 ]

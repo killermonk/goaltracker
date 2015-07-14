@@ -9,6 +9,7 @@ class ProgressLogSerializer(serializers.ModelSerializer):
 
 
 class GoalSerializer(serializers.ModelSerializer):
+    #user = serializers.ReadOnlyField(source='user.username')
     logs = ProgressLogSerializer(many=True, read_only=True)
 
     class Meta:

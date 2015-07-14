@@ -2,8 +2,14 @@ from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 
+from rest_framework import status, generics, filters, permissions
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from goaltracker.json import JsonResponse, JsonRequest
 from serializers import GoalSerializer, ProgressLogSerializer
+from permissions import IsOwner
 from models import Goal, ProgressLog
 
 
@@ -14,83 +20,79 @@ def _get_user_goal_or_404(goal_id, user):
     return goal
 
 
-@login_required
-def goal_list(request):
-    if request.method == 'GET':
-        goals = Goal.objects.filter(user=request.user)
-        serializer = GoalSerializer(goals, many=True)
-        return JsonResponse(serializer.data)
-
-    elif request.method == 'POST':
-        data = JsonRequest().parse(request)
-        serializer = GoalSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save(user=request.user)
-            return JsonResponse(serializer.data, status=201)
-        return JsonResponse(serializer.errors, status=400)
+class GoalView(APIView):
+    def get_goal(self, goal_id, user):
+        goal = get_object_or_404(Goal, pk=goal_id)
+        if goal.user != user:
+            raise Http404('No Goal matches the given query')
+        return goal
 
 
-@login_required
-def goal_detail(request, goal_id):
-    goal = _get_user_goal_or_404(goal_id, request.user)
+class GoalList(generics.ListCreateAPIView):
+    permission_classes = (permissions.IsAuthenticated,)
+    serializer_class = GoalSerializer
+    filter_backends = (filters.DjangoFilterBackend,)
 
-    if request.method == 'GET':
-        serializer = GoalSerializer(goal)
-        return JsonResponse(serializer.data)
+    def get_queryset(self):
+        return Goal.objects.filter(user=self.request.user)
 
-    elif request.method == 'PUT':
-        data = JsonRequest().parse(request)
-        serializer = GoalSerializer(goal, data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return JsonResponse(serializer.data)
-        return JsonResponse(serializer.errors, status=400)
-
-    elif request.method == 'DELETE':
-        goal.delete()
-        return HttpResponse(status=204)
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
-@login_required
-def goal_logs_list(request, goal_id):
-    goal = _get_user_goal_or_404(goal_id, request.user)
-
-    if request.method == 'GET':
-        serializer = ProgressLogSerializer(goal.logs, many=True)
-        return JsonResponse(serializer.data)
-
-    elif request.method == 'POST':
-        data = JsonRequest().parse(request)
-        serializer = ProgressLogSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save(goal=goal)
-            return JsonResponse(serializer.data, status=201)
-        return JsonResponse(serializer.errors, status=400)
+class GoalDetail(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = (permissions.IsAuthenticated,
+                          IsOwner)
+    queryset = Goal.objects.all()
+    serializer_class = GoalSerializer
 
 
+class GoalLogsList(GoalView):
+    permission_classes = (permissions.IsAuthenticated,)
 
-@login_required
-def goal_logs_detail(request, goal_id, progress_date):
-    goal = _get_user_goal_or_404(goal_id, request.user)
-    log_entry = get_object_or_404(ProgressLog, goal=goal, date=progress_date)
+    def get(self, request, goal_id, format=None):
+        goal = self.get_goal(goal_id, request.user)
+        return Response(ProgressLogSerializer(goal.logs, many=True).data)
 
-    if request.method == 'GET':
-        serializer = ProgressLogSerializer(log_entry)
-        return JsonResponse(serializer.data)
 
-    elif request.method == 'POST' or request.method == 'PUT':
-        data = JsonRequest().parse(request)
-        # If this is a post, we are updating the record.
-        # If this is a put, we are overriding the recode
-        if request.method == 'POST':
-            data.progress += log_entry.progress
+class GoalLogsDetail(GoalView):
+    permission_classes = (permissions.IsAuthenticated,)
 
-        serializer = ProgressLogSerializer(log_entry, data=data)
+    def get_log(self, goal_id, progress_date, user, create_if_missing=False):
+        goal = self.get_goal(goal_id, user)
+        try:
+            log_entry = ProgressLog.objects.get(goal=goal, date=progress_date)
+        except ProgressLog.DoesNotExist:
+            if not create_if_missing:
+                raise Http404('No ProgressLog matches the given query')
+            log_entry = ProgressLog(goal=goal, date=progress_date, progress=0)
+        return log_entry
+
+    def get(self, request, goal_id, progress_date, format=None):
+        log_entry = self.get_log(goal_id, progress_date, request.user)
+        return Response(ProgressLogSerializer(log_entry).data)
+
+    def post(self, request, goal_id, progress_date, format=None):
+        # Update the record
+        log_entry = self.get_log(goal_id, progress_date, request.user, True)
+        request.data['date'] = progress_date
+        request.data['progress'] += log_entry.progress
+        serializer = ProgressLogSerializer(log_entry, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return JsonResponse(serializer.data)
-        return JsonResponse(serializer.errors, status=400)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    elif request.method == 'DELETE':
-        log_entry.delete()
-        return HttpResponse(status=204)
+    def put(self, request, goal_id, progress_date, format=None):
+        # Override the record
+        log_entry = self.get_log(goal_id, progress_date, request.user, True)
+        request.data['date'] = progress_date
+        serializer = ProgressLogSerializer(log_entry, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, goal_id, progress_date, format=None):
+        self.get_log(goal_id, progress_date, request.user).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

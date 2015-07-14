@@ -13,13 +13,6 @@ from permissions import IsOwner
 from models import Goal, ProgressLog
 
 
-def _get_user_goal_or_404(goal_id, user):
-    goal = get_object_or_404(Goal, pk=goal_id)
-    if goal.user != user:
-        raise Http404('No Goal matches the given query')
-    return goal
-
-
 class GoalView(APIView):
     def get_goal(self, goal_id, user):
         goal = get_object_or_404(Goal, pk=goal_id)
